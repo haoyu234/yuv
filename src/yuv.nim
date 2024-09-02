@@ -1,30 +1,42 @@
+import std/macros
+
 import yuv/[
-  loop,
-  stream,
-  tcp,
-  pipe,
-  server,
-  timer,
-  dns,
+  buf,
   common,
-  process,
-  buf
+  dns,
+  errors,
+  stream,
+  timer,
+  utils,
+  uvfile,
+  uvloop,
+  uvpipe,
+  uvprocess,
+  uvtcp,
 ]
 
-export
-  loop,
-  stream,
-  tcp,
-  pipe,
-  server,
-  timer,
-  dns,
+macro exports(l: untyped): untyped =
+  result = newNimNode(nnkExportStmt)
+  for p in l.children:
+    result.add(p)
+
+exports [
+  buf,
   common,
-  process,
-  buf
+  dns,
+  errors,
+  stream,
+  timer,
+  uvfile,
+  uvloop,
+  uvpipe,
+  uvprocess,
+  uvtcp,
+]
+
+exports [
+  utils.close,
+]
 
 import yasync
 export yasync
-
-import uv
-export errors

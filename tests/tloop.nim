@@ -8,5 +8,5 @@ test "loop":
 
   waitFor amain()
 
-  let loop = getLoop()
-  closeLoop(loop)
+  let loop = getUVLoop()
+  closeUVLoop(loop)

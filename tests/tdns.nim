@@ -7,7 +7,6 @@ import yuv
 proc dumpRes(res: ptr AddrInfo) =
   var res = res
   while not res.isNil:
-    # echo res[]
     res = res.ai_next
 
 test "getAddrInfo":

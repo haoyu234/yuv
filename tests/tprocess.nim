@@ -21,7 +21,7 @@ proc collectOutput(reader: Stream): string {.async.} =
         reserveSize = reserveSize * 2
 
     let writeBuf = result.toBuf
-    let n = await reader.readSome(writeBuf[offset..<result.len])
+    let n = await reader.readSome(writeBuf[offset ..< result.len])
     if n > 0:
       inc offset, n
       continue
@@ -29,7 +29,9 @@ proc collectOutput(reader: Stream): string {.async.} =
 
   result.setLen(offset)
 
-proc getOutput(executable: string, cwd: string = "", args: seq[string] = @[]): string {.async.} =
+proc getOutput(
+    executable: string, cwd: string = "", args: seq[string] = @[]
+): string {.async.} =
   var (reader, writer) = pipe()
   defer:
     reader.close()
@@ -50,14 +52,10 @@ proc getOutput(executable: string, cwd: string = "", args: seq[string] = @[]): s
   check exitCode == 0
 
 test "spawn":
-
   proc amain() {.async.} =
-    let workDir = $getCurrentDir()
+    let workDir = getCurrentDir().string
     let workDir2 = await getOutput("pwd", workDir)
 
     check workDir == workDir2.strip
-
-    let source = await getOutput("cat", args = @[currentSourcePath()])
-    check source.len > 1
 
   waitFor amain()

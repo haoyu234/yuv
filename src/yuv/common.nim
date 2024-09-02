@@ -1,21 +1,29 @@
-import uv
+import std/nativesockets
 
-type
-  UVError* = object of CatchableError
-    errorCode*: cint
+import ./errors
+import ./uvexport
 
-  Handle* = ptr HandleObj
-  HandleObj* = object of RootObj
-    uv_handle*: ptr uv_handle_t
-    closeCb*: CloseCb
+iterator items*(res: ptr AddrInfo): ptr AddrInfo =
+  var res = res
+  while not res.isNil:
+    yield res
+    res = res.ai_next
 
-  CloseCb = proc (s: ptr HandleObj) {.raises: [], nimcall.}
+proc `$`*(`addr`: ptr SockAddr): string =
+  var source: pointer
+  var buffer: array[46, char]
 
-proc newUVError*(err: cint): ref UVError =
-  (ref UVError)(errorCode: err, msg: $uv_strerror(err))
+  let af = `addr`.sa_family.cint
+  case af
+  of AF_INET.toInt:
+    source = cast[ptr Sockaddr_in](`addr`).sin_addr.s_addr.addr
+  of AF_INET6.toInt:
+    source = cast[ptr Sockaddr_in6](`addr`).sin6_addr.s6_addr.addr
+  else:
+    raiseUVError(UV_EAFNOSUPPORT)
 
-proc raiseUVError*(err: cint) =
-  raise (ref UVError)(errorCode: err, msg: $uv_strerror(err))
+  let err = uv_inet_ntop(af, source, buffer[0].addr, sizeof(buffer).csize_t)
+  if err != 0:
+    raiseUVError(UVErrorCode(err))
 
-proc close*(b: ptr HandleObj) =
-  b.closeCb(b)
+  $cast[cstring](buffer[0].addr)

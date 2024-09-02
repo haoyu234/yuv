@@ -3,12 +3,12 @@ import std/nativesockets
 when defined(linux):
   import std/posix
 
-import uv
 import yasync
 
-import ./common
-import ./loop
-import ./intern/utils
+import ./errors
+import ./utils
+import ./uvexport
+import ./uvloop
 
 type GetAddrInfoEnv = object of Cont[ptr AddrInfo]
   request: uv_getaddrinfo_t
@@ -18,7 +18,7 @@ proc getAddrInfoCb(
 ) {.cdecl.} =
   let env = cast[ptr GetAddrInfoEnv](uv_req_get_data(request))
   if status != 0:
-    failSoon(env, newUVError(status))
+    failSoon(env, createUVError(UVErrorCode(status)))
   else:
     completeSoon(env, res)
 
@@ -28,12 +28,14 @@ proc getAddrInfo*(
     domain: Domain = AF_INET,
     sockType: SockType = SOCK_STREAM,
     protocol: Protocol = IPPROTO_TCP,
+    flags: cint = 0,
     env: ptr GetAddrInfoEnv,
 ) {.asyncRaw.} =
   var hints: AddrInfo
   hints.ai_family = toInt(domain)
   hints.ai_socktype = toInt(sockType)
   hints.ai_protocol = toInt(protocol)
+  hints.ai_flags = flags
 
   # OpenBSD doesn't support AI_V4MAPPED and doesn't define the macro AI_V4MAPPED.
   # FreeBSD, Haiku don't support AI_V4MAPPED but defines the macro.
@@ -43,7 +45,7 @@ proc getAddrInfo*(
   when not defined(freebsd) and not defined(openbsd) and not defined(netbsd) and
       not defined(android) and not defined(haiku):
     if domain == AF_INET6:
-      hints.ai_flags = AI_V4MAPPED
+      hints.ai_flags = flags or AI_V4MAPPED
 
   let socketPort =
     if sockType == SOCK_RAW:
@@ -51,7 +53,7 @@ proc getAddrInfo*(
     else:
       $port
 
-  let loop = getLoop()
+  let loop = getUVLoop()
 
   uv_req_set_data(env.request.addr, env)
 
@@ -60,7 +62,7 @@ proc getAddrInfo*(
     socketPort.cstring, hints.addr,
   )
   if err != 0:
-    failSoon(env, newUVError(err))
+    failSoon(env, createUVError(UVErrorCode(err)))
 
 proc freeAddrInfo*(res: ptr AddrInfo) =
   uv_freeaddrinfo(res)

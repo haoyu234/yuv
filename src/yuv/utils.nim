@@ -1,8 +1,38 @@
 import std/macros
 
-import uv
+import ./buf
+import ./uvexport
 
-import ../common
+const DEFAULT_UVBUFS_SIZE* = 32
+
+type
+  Closeable* = ptr CloseableObj
+  CloseableObj* {.inheritable.} = object
+    closeCb: CloseCb
+
+  CloseCb = proc(s: Closeable) {.raises: [], nimcall.}
+
+  UVBufs* = object
+    size*: int
+    nbufs*: int
+    uv_bufs*: array[DEFAULT_UVBUFS_SIZE, uv_buf_t]
+
+proc allocObj*[T: CloseableObj](closeCb: CloseCb): ptr T {.nodestroy.} =
+  result = createU(T)
+  result[] = default(T)
+  result.closeCb = closeCb
+
+proc close*(h: Closeable) =
+  if h.isNil:
+    return
+
+  h.closeCb(h)
+
+proc setupBufs*(b: var UVBufs, buf: openArray[Buf]) =
+  for idx in 0 ..< min(buf.len, DEFAULT_UVBUFS_SIZE):
+    inc b.nbufs
+    inc b.size, buf[idx].len
+    b.uv_bufs[idx] = uv_buf_init(buf[idx], buf[idx].len.cuint)
 
 macro defineAToB(F, T: typedesc): untyped =
   let name = newIdentNode("\1intern_" & (repr F) & (repr T))
@@ -43,19 +73,10 @@ defineAToB(uv_tcp_t, uv_stream_t)
 defineAToB(uv_tty_t, uv_stream_t)
 
 #
-template getLoop*(p: ptr uv_loop_t): auto =
-  cast[Loop](uv_loop_get_data(p))
+template getUVLoop*(p: ptr uv_loop_t): auto =
+  cast[UVLoop](uv_loop_get_data(p))
 
-template getLoop*(p: ptr uv_handle_t): auto =
+template getUVLoop*(p: ptr uv_handle_t): auto =
   block:
     let loop = uv_handle_get_loop(p)
-    cast[Loop](uv_loop_get_data(loop))
-
-#
-proc closeCb*[T](h: Handle) =
-  proc closeCb(handle: ptr uv_handle_t) {.cdecl.} =
-    let t = cast[T](uv_handle_get_data(handle))
-    reset(t[])
-    dealloc(t)
-
-  uv_close(h.uv_handle, closeCb)
+    cast[UVLoop](uv_loop_get_data(loop))

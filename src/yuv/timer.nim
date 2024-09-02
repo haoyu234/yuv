@@ -1,22 +1,22 @@
-import uv
 import yasync
 
-import ./common
-import ./loop
-import ./intern/utils
+import ./errors
+import ./utils
+import ./uvexport
+import ./uvloop
 
 type SleepEnv = object of Cont[void]
   uv_timer: uv_timer_t
 
 proc time*(): uint64 =
-  let loop = getLoop()
+  let loop = getUVLoop()
   uv_now(loop.uv_loop.addr)
 
 proc sleep*(ms: uint64, env: ptr SleepEnv) {.asyncRaw.} =
-  let loop = getLoop()
+  let loop = getUVLoop()
   var err = uv_timer_init(loop.uv_loop.addr, env.uv_timer.addr)
   if err != 0:
-    failSoon(env, newUVError(err))
+    failSoon(env, createUVError(UVErrorCode(err)))
     return
 
   uv_handle_set_data(env.uv_timer.addr, env)
@@ -31,5 +31,5 @@ proc sleep*(ms: uint64, env: ptr SleepEnv) {.asyncRaw.} =
   err = uv_timer_start(env.uv_timer.addr, sleepCb, ms, 0)
   if err != 0:
     uv_close(env.uv_timer.addr, nil)
-    failSoon(env, newUVError(err))
+    failSoon(env, createUVError(UVErrorCode(err)))
     return
