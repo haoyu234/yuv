@@ -9,9 +9,11 @@ import yuv/[
   timer,
   utils,
   uvfile,
+  uvfs,
   uvloop,
   uvpipe,
   uvprocess,
+  uvstream,
   uvtcp,
 ]
 
@@ -28,9 +30,11 @@ exports [
   stream,
   timer,
   uvfile,
+  uvfs,
   uvloop,
   uvpipe,
   uvprocess,
+  uvstream,
   uvtcp,
 ]
 

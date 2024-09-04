@@ -14,8 +14,8 @@ type
   UVProcess* = ptr UVProcessObj
   UVProcessObj* = object of CloseableObj
     uv_process*: uv_process_t
-    exitCode: Option[int64]
     queuedEnv: Deque[ptr ExitCodeEnv]
+    exitCode: Option[int64]
 
   ExitCodeEnv = object of Cont[int64]
 

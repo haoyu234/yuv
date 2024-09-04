@@ -20,7 +20,8 @@ proc closeFile(c: Closeable) =
   proc closeCb(request: ptr uv_fs_t) {.cdecl.} =
     let f = cast[UVFile](uv_req_get_data(request))
     let err = uv_fs_get_result(request)
-    uv_fs_req_cleanup(request)
+    defer:
+      uv_fs_req_cleanup(request)
 
     if err < 0:
       return
@@ -53,7 +54,8 @@ proc streamCb[T: static bool](
   proc completeCb(request: ptr uv_fs_t) {.cdecl.} =
     let env = cast[ptr FileOpEnv[int]](uv_req_get_data(request))
     let err = cast[int](uv_fs_get_result(request))
-    uv_fs_req_cleanup(request)
+    defer:
+      uv_fs_req_cleanup(request)
 
     if err < 0:
       failSoon(env, createUVError(UVErrorCode(err)))
@@ -96,8 +98,9 @@ proc createUVFile(): UVFile =
   setupStream(result)
 
 proc openCb(request: ptr uv_fs_t) {.cdecl.} =
-  let result = uv_fs_get_result(request)
-  uv_fs_req_cleanup(request)
+  let result = cast[int](uv_fs_get_result(request))
+  defer:
+    uv_fs_req_cleanup(request)
 
   let env = cast[ptr FileOpEnv[UVFile]](uv_req_get_data(request))
   if result < 0:
@@ -114,7 +117,7 @@ proc openFile*(fd: uv_file): UVFile =
   result.uv_file = fd
 
 proc openFile*(
-    path: string, flags: int, mode: int, env: ptr FileOpEnv[UVFile]
+    path: string, flags, mode: int, env: ptr FileOpEnv[UVFile]
 ) {.asyncRaw.} =
   uv_req_set_data(env.request.addr, env)
 

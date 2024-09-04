@@ -1,15 +1,39 @@
-# import unittest
+import unittest
 
-# import std/nativesockets
+import std/nativesockets
 
-# import yuv
+import yuv
 
-# test "tcp":
-#   proc amain() {.async.} =
-#     let t = allocTcp()
-#     # await t.connectAddr("www.baidu.com", Port(80))
-#     await t.connectAddr("localhost", Port(1996))
-#     let n = await t.writeSome("123".toBuf)
-#     echo n
+type DemoType = enum
+  DemoTypeClient
+  DemoTypeServer
 
-#   waitFor amain()
+const hello = "hello world!"
+
+test "tcp":
+  proc amain(tp: DemoType) {.async.} =
+    let t = createUVTcp()
+    defer:
+      t.close()
+
+    if tp == DemoTypeClient:
+      await t.connectAddr("localhost", Port(1996))
+      let n = await t.writeSome(hello.toBuf)
+      check n == hello.len
+      return
+
+    await t.bindAddr("0.0.0.0", Port(1996))
+
+    let client = await t.accept()
+    defer:
+      client.close()
+
+    var buf: array[32, byte]
+    let n = await client.readSome(buf.toBuf)
+    check n == hello.len
+
+  let s = amain(DemoTypeServer)
+  let c = amain(DemoTypeClient)
+
+  waitFor s
+  waitFor c

@@ -1,6 +1,6 @@
 import unittest
 
-import std/paths
+import std/os
 import std/strutils
 
 import yuv
@@ -53,7 +53,7 @@ proc getOutput(
 
 test "spawn":
   proc amain() {.async.} =
-    let workDir = getCurrentDir().string
+    let workDir = getCurrentDir()
     let workDir2 = await getOutput("pwd", workDir)
 
     check workDir == workDir2.strip

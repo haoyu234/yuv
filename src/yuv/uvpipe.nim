@@ -24,7 +24,7 @@ proc closePipe(c: Closeable) =
 proc createUVPipe*(): UVPipe =
   result = allocObj[UVPipeObj](closePipe)
   uv_handle_set_data(result.uv_pipe.addr, result)
-  setupStream(result, result.uv_pipe.addr)
+  setupUVStream(result, result.uv_pipe.addr, createUVPipe)
 
   let loop = getUVLoop()
   let err = uv_pipe_init(loop.uv_loop.addr, result.uv_pipe.addr, 0)

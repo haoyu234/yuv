@@ -29,10 +29,21 @@ proc closeTcp(c: Closeable) =
 
   uv_close(UVTcp(c).uv_tcp.addr, closeCb)
 
-proc createUVTcp*(domain: Domain = AF_INET): UVTcp =
+proc createUVTcp*(): UVTcp =
   result = allocObj[UVTcpObj](closeTcp)
   uv_handle_set_data(result.uv_tcp.addr, result)
-  setupStream(result, result.uv_tcp.addr)
+  setupUVStream(result, result.uv_tcp.addr, createUVTcp)
+
+  let loop = getUVLoop()
+  let err = uv_tcp_init(loop.uv_loop.addr, result.uv_tcp.addr)
+  if err != 0:
+    close(result)
+    raiseUVError(UVErrorCode(err))
+
+proc createUVTcp*(domain: Domain): UVTcp =
+  result = allocObj[UVTcpObj](closeTcp)
+  uv_handle_set_data(result.uv_tcp.addr, result)
+  setupUVStream(result, result.uv_tcp.addr, createUVTcp)
 
   let loop = getUVLoop()
   let err = uv_tcp_init(loop.uv_loop.addr, result.uv_tcp.addr)

@@ -35,9 +35,9 @@ proc setupBufs*(b: var UVBufs, buf: openArray[Buf]) =
     b.uv_bufs[idx] = uv_buf_init(buf[idx], buf[idx].len.cuint)
 
 macro defineAToB(F, T: typedesc): untyped =
-  let name = newIdentNode("\1intern_" & (repr F) & (repr T))
+  let name = newIdentNode("intern_" & (repr F) & "_" & (repr T))
   result = quote:
-    converter `name`*(tp: ptr `F`): ptr `T` =
+    converter `name`*(tp: ptr `F`): ptr `T` {.inline.} =
       cast[ptr `T`](tp)
 
 # handle
