@@ -301,7 +301,7 @@ proc completeStringCb(request: ptr uv_fs_t) {.cdecl.} =
     return
 
   let p = cast[cstring](uv_fs_get_ptr(request))
-  completeSoon(env, string($p))
+  completeSoon(env, $p)
 
 proc readlink*(path: string, env: ptr FsOpEnv[string]) {.asyncRaw.} =
   uv_req_set_data(env.request.addr, env)

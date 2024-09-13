@@ -23,9 +23,6 @@ proc allocObj*[T: CloseableObj](closeCb: CloseCb): ptr T {.nodestroy.} =
   result.closeCb = closeCb
 
 proc close*(h: Closeable) =
-  if h.isNil:
-    return
-
   h.closeCb(h)
 
 proc setupBufs*(b: var UVBufs, buf: openArray[Buf]) =

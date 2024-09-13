@@ -23,6 +23,7 @@ test "tcp":
       return
 
     await t.bindAddr("0.0.0.0", Port(1996))
+    await t.listen(1024)
 
     let client = await t.accept()
     defer:
